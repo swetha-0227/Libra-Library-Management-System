@@ -1,0 +1,54 @@
+-- USERS TABLE
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    role VARCHAR(20)
+);
+
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS email VARCHAR(255);
+
+-- CATEGORY TABLE
+CREATE TABLE IF NOT EXISTS category (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL
+);
+
+-- BOOK TABLE
+CREATE TABLE IF NOT EXISTS book (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(150) NOT NULL,
+    author VARCHAR(100),
+    available BOOLEAN NOT NULL DEFAULT TRUE,
+    category_id BIGINT,
+
+    CONSTRAINT fk_category
+    FOREIGN KEY (category_id)
+    REFERENCES category(id)
+    ON DELETE SET NULL
+);
+
+ALTER TABLE book
+    ADD COLUMN IF NOT EXISTS available BOOLEAN NOT NULL DEFAULT TRUE;
+
+-- ISSUE RECORD TABLE
+CREATE TABLE IF NOT EXISTS issue_record (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT,
+    book_id BIGINT,
+    issue_date DATE,
+    due_date DATE,
+    return_date DATE,
+
+    CONSTRAINT fk_user
+    FOREIGN KEY (user_id)
+    REFERENCES users(id)
+    ON DELETE CASCADE,
+
+    CONSTRAINT fk_book
+    FOREIGN KEY (book_id)
+    REFERENCES book(id)
+    ON DELETE CASCADE
+);
