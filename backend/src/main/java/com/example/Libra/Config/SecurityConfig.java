@@ -2,7 +2,6 @@ package com.example.Libra.Config;
 
 import java.util.List;
 
-import com.example.Libra.Config.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -26,33 +25,98 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
+            // Enable CORS
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable())   // ❗ VERY IMPORTANT (fixes 403)
+
+            // Disable CSRF because this is a REST API
+            .csrf(csrf -> csrf.disable())
+
+            // Authorization rules
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/**").permitAll()  // ✅ allow login
-                .requestMatchers(HttpMethod.POST, "/books", "/books/**", "/categories", "/categories/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/books/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/books/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.POST, "/issue").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.POST, "/issue/return").hasRole("ADMIN")
+
+                // Allow browser CORS preflight requests
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // Allow login and registration without JWT
+                .requestMatchers("/auth/**").permitAll()
+
+                // Admin-only book/category operations
+                .requestMatchers(
+                    HttpMethod.POST,
+                    "/books",
+                    "/books/**",
+                    "/categories",
+                    "/categories/**"
+                ).hasRole("ADMIN")
+
+                .requestMatchers(
+                    HttpMethod.PUT,
+                    "/books/**"
+                ).hasRole("ADMIN")
+
+                .requestMatchers(
+                    HttpMethod.DELETE,
+                    "/books/**"
+                ).hasRole("ADMIN")
+
+                // Admin-only issue operations
+                .requestMatchers(
+                    HttpMethod.POST,
+                    "/issue"
+                ).hasRole("ADMIN")
+
+                .requestMatchers(
+                    HttpMethod.POST,
+                    "/issue/return"
+                ).hasRole("ADMIN")
+
+                // Admin endpoints
                 .requestMatchers("/admin/**").hasRole("ADMIN")
+
+                // Everything else requires authentication
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+            // JWT authentication filter
+            .addFilterBefore(
+                jwtAuthenticationFilter,
+                UsernamePasswordAuthenticationFilter.class
+            );
 
         return http.build();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
+        // Frontend URLs allowed to access the backend
+        config.setAllowedOriginPatterns(List.of(
+            "http://localhost:3000",
+            "https://libra-frontend-six.vercel.app"
+        ));
+
+        // HTTP methods allowed
+        config.setAllowedMethods(List.of(
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "OPTIONS"
+        ));
+
+        // Allow all request headers
         config.setAllowedHeaders(List.of("*"));
+
+        // Allow credentials such as cookies/auth headers
         config.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source =
+            new UrlBasedCorsConfigurationSource();
+
         source.registerCorsConfiguration("/**", config);
+
         return source;
     }
 }
